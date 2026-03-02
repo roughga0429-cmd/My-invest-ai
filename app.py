@@ -1,37 +1,41 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 
-# iPad向けの表示設定
+# 表示設定：iPadで見やすいワイドレイアウト
 st.set_page_config(page_title="My Invest AI", layout="wide")
+st.title("🇯🇵 日本株 投資自動分析ボード")
 
-# タイトル
-st.title("🇯🇵 日本株 投資パートナー")
+# あなたが作成したスプレッドシートのURL（自動連携用）
+sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aXS1mQPmR3au-PgbCe3FJ_soX4Os/export?format=csv&gid=0"
 
-# --- 資産状況セクション ---
-st.header("📈 総資産サマリー")
-col_a, col_b = st.columns([1, 1])
-with col_a:
-    st.metric(label="現在の評価額", value="1,000,000 JPY", delta="準備完了")
-with col_b:
-    # 資産推移のサンプルグラフ
-    chart_data = pd.DataFrame(np.random.randn(7, 1).cumsum() + 100, columns=['資産推移'])
-    st.line_chart(chart_data)
+try:
+    # スプレッドシートから最新データを読み込み
+    df = pd.read_csv(sheet_url)
+    
+    # 資産メトリクス（スプレッドシートのデータに基づき将来的に拡張可能）
+    st.header("📈 AI注目銘柄サマリー")
+    
+    if not df.empty:
+        # 銘柄ごとのカード表示
+        cols = st.columns(len(df))
+        for i, row in df.iterrows():
+            with cols[i]:
+                st.subheader(f"{row['銘柄名']}")
+                st.caption(f"コード: {row['ティッカー']}")
+                st.metric("AI分析スコア", f"{row['AI分析スコア']}点")
+                st.info(f"**分析コメント:**\n\n{row['コメント']}")
+        
+        st.divider()
+        # データ一覧表
+        st.subheader("📊 銘柄詳細データ一覧")
+        st.dataframe(df, use_container_width=True)
+    else:
+        st.warning("スプレッドシートにデータがありません。明日の朝の更新をお待ちください。")
 
-st.divider()
+except Exception as e:
+    st.error("データの読み込み中にエラーが発生しました。")
+    st.info("【確認】スプレッドシートの共有設定が「リンクを知っている全員」になっていますか？")
+    st.write(f"詳細エラー: {e}")
 
-# --- 本日の注目株トップ3 ---
-st.header("🔥 AI厳選：本日の注目株TOP3")
-c1, c2, c3 = st.columns(3)
-
-with c1:
-    st.subheader("1. バンダイナムコ (7832)")
-    st.info("**根拠:** ガンプラの世界需要と強力なIP。")
-
-with c2:
-    st.subheader("2. 三菱電機 (6503)")
-    st.info("**根拠:** AIデータセンター向けの電力設備需要。")
-
-with c3:
-    st.subheader("3. ハピネット (7552)")
-    st.info("**根拠:** ガチャガチャのインバウンド需要。")
+st.sidebar.markdown(f"### 📱 アプリステータス\n自動連携モード: **ON**")
+st.sidebar.write("最終更新確認: 2026-03-02")
