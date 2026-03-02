@@ -4,9 +4,6 @@ import datetime
 
 st.set_page_config(page_title="My Invest AI Pro", layout="wide", initial_sidebar_state="expanded")
 
-
-
-# サイドバー設定
 with st.sidebar:
     st.title("⚙️ System Settings")
     st.write(f"📅 最終更新: {datetime.date.today()}")
@@ -16,58 +13,65 @@ with st.sidebar:
 st.title("🇯🇵 日本株 投資自動分析ボード")
 
 # --- URL設定 ---
-# ① AI分析データのURL (gid=0)
 ai_sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aXS1mQPmR3au-PgbCe3FJ_soX4Os/export?format=csv&gid=0"
-# ② 保有株データのURL (あなたのGID適用済み)
-portfolio_sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aXS1mQPmR3au-PgbCe3FJ_soX4Os/export?format=csv&gid=1796285252"
+portfolio_sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aXS1mQPmR3au-PgbCe3FJ_soX4Os/export?format=csv&gid=1796285252" # あなたのGID適用済み
 
-# --- 1. AI注目銘柄セクション ---
+# --- 1. AI注目銘柄セクション（タブ機能追加！） ---
 try:
     df = pd.read_csv(ai_sheet_url)
-    if not df.empty:
-        # 最新3件を取得
-        recent_df = df.tail(3).iloc[::-1]
+    if not df.empty and "推奨期間" in df.columns:
+        st.subheader("🔥 AI PickUp - 期間別・推奨銘柄リスト")
         
-        st.subheader("🔥 AI PickUp - 今日の注目銘柄")
-        cols = st.columns(3)
+        # 短期・中期・長期の3つのタブを作成
+        tab_short, tab_mid, tab_long = st.tabs(["⚡ 短期 (1ヶ月)", "📈 中期 (半年)", "🌍 長期 (年単位)"])
         
-        for i, (idx, row) in enumerate(recent_df.iterrows()):
-            with cols[i]:
-                # スコアによって色を分ける
-                score = int(row.iloc[2])
-                color = "inverse" if score >= 80 else "normal"
+        # タブの中にカードを表示する関数
+        def display_stocks_by_term(term_keyword, target_tab):
+            with target_tab:
+                # 該当する期間の銘柄だけを絞り込み
+                term_df = df[df["推奨期間"].str.contains(term_keyword, na=False)]
                 
-                with st.container(border=True):
-                    st.markdown(f"### {row.iloc[0]}")
-                    st.caption(f"Ticker: {row.iloc[1]}")
-                    st.metric("AI Score", f"{score}pt", delta=f"{score-70}%", delta_color=color)
-                    st.write(f"**分析コメント:**\n{row.iloc[3]}")
-                    st.button(f"{row.iloc[1]} の詳細を表示", key=f"btn_{i}")
+                if not term_df.empty:
+                    cols = st.columns(len(term_df))
+                    for i, (idx, row) in enumerate(term_df.iterrows()):
+                        with cols[i]:
+                            try:
+                                score = int(row["AI分析スコア"])
+                            except:
+                                score = 0 # 変換エラー回避
+                            
+                            color = "inverse" if score >= 80 else "normal"
+                            with st.container(border=True):
+                                st.markdown(f"### {row['銘柄名']}")
+                                st.caption(f"Ticker: {row['ティッカー']}")
+                                st.metric("AI Score", f"{score}pt", delta=f"{score-70}%", delta_color=color)
+                                st.write(f"**💡 根拠・コメント:**\n{row['根拠・コメント']}")
+                else:
+                    st.write("この期間の推奨銘柄は現在ありません。")
+
+        # 各タブに表示処理を割り当て
+        display_stocks_by_term("短期", tab_short)
+        display_stocks_by_term("中期", tab_mid)
+        display_stocks_by_term("長期", tab_long)
+
     else:
-        st.warning("スプレッドシートにデータがありません。")
+        st.warning("スプレッドシートのデータ形式が古いか、データがありません。GASを再実行してください。")
 except Exception as e:
-    st.error(f"AI分析データの読み込みに失敗しました。")
+    st.error("AI分析データの読み込みに失敗しました。")
 
 st.divider()
 
-# --- 2. 資産管理（本物と連動！） ---
+# --- 2. 資産管理 ---
 st.subheader("💰 資産推移・ポートフォリオ")
 
 try:
-    # 保有株データを読み込む
     pf_df = pd.read_csv(portfolio_sheet_url)
-    
-    # 評価額と損益の合計を計算
     total_asset = pf_df['評価額'].sum()
     total_pl = pf_df['損益'].sum()
-    
-    # プラスマイナスで色を変えるための処理
     delta_color = "normal" if total_pl >= 0 else "inverse"
     
     col_a, col_b = st.columns([1, 2])
-    
     with col_a:
-        # トータル資産の表示
         st.metric(
             label="現在の総評価額", 
             value=f"¥ {total_asset:,.0f}", 
@@ -77,10 +81,7 @@ try:
         st.caption("※株価は約20分遅れで自動更新されます")
         
     with col_b:
-        # 保有株リストを綺麗な表で表示
         st.write("📋 **現在のポートフォリオ**")
-        
-        # ここが途切れていた部分です！
         st.dataframe(
             pf_df,
             column_config={
@@ -94,4 +95,4 @@ try:
         )
 
 except Exception as e:
-    st.warning("保有株データの読み込みに失敗しました。スプレッドシートの「保有株」シートにデータが正しく入力されているか確認してください。")
+    st.warning("保有株データの読み込みに失敗しました。")
