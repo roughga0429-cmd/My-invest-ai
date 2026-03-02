@@ -24,7 +24,7 @@ st.title("🇯🇵 日本株 投資自動分析ボード")
 # --- URL設定 ---
 # ① AI分析データのURL (gid=0)
 ai_sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aXS1mQPmR3au-PgbCe3FJ_soX4Os/export?format=csv&gid=0"
-# ② 保有株データのURL (★YOUR_NEW_GIDの部分を、先ほどメモした数字に書き換えてください)
+# ② 保有株データのURL (あなたのGID適用済み)
 portfolio_sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aXS1mQPmR3au-PgbCe3FJ_soX4Os/export?format=csv&gid=1796285252"
 
 # --- 1. AI注目銘柄セクション ---
@@ -85,4 +85,19 @@ try:
     with col_b:
         # 保有株リストを綺麗な表で表示
         st.write("📋 **現在のポートフォリオ**")
+        
+        # ここが途切れていた部分です！
         st.dataframe(
+            pf_df,
+            column_config={
+                "購入単価": st.column_config.NumberColumn(format="¥%d"),
+                "現在値": st.column_config.NumberColumn(format="¥%d"),
+                "評価額": st.column_config.NumberColumn(format="¥%d"),
+                "損益": st.column_config.NumberColumn(format="¥%d"),
+            },
+            hide_index=True,
+            use_container_width=True
+        )
+
+except Exception as e:
+    st.warning("保有株データの読み込みに失敗しました。スプレッドシートの「保有株」シートにデータが正しく入力されているか確認してください。")
