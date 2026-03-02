@@ -1,41 +1,28 @@
 import streamlit as st
 import pandas as pd
-import numpy as np
 
-# 表示設定
 st.set_page_config(page_title="My Invest AI", layout="wide")
 st.title("🇯🇵 日本株 投資自動分析ボード")
 
 # スプレッドシートのURL
 sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aXS1mQPmR3au-PgbCe3FJ_soX4Os/export?format=csv&gid=0"
 
-# --- 1. 資産サマリーセクション（復活！） ---
+# --- 1. 資産サマリー（手入力連携モード） ---
 st.header("📈 総資産サマリー")
-col_a, col_b = st.columns([1, 2])
+# ここは一旦、あなたが「今いくら持っているか」を入力できるスライダーにしました
+balance = st.sidebar.number_input("現在の投資元本を入力 (JPY)", value=1000000)
+st.metric(label="現在の評価額", value=f"{balance:,} JPY", delta="運用開始待ち")
 
-with col_a:
-    # 評価額の表示（将来的にこれもシートから読めます）
-    st.metric(label="現在の総評価額", value="1,025,300 JPY", delta="+2.5% (前日比)")
-    st.write("📈 **資産推移の概況**")
-    st.caption("AI分析に基づき、インフラとエンタメ株の比重を高めています。")
-
-with col_b:
-    # 資産推移グラフの生成
-    chart_data = pd.DataFrame(
-        np.random.randn(20, 1).cumsum() + 100, 
-        columns=['資産評価額']
-    )
-    st.line_chart(chart_data)
+st.info("※現在、運用開始前のためグラフは非表示にしています。実際に株を購入されたら、推移を記録できるようにしましょう。")
 
 st.divider()
 
-# --- 2. AI注目銘柄セクション ---
+# --- 2. AI注目銘柄（スプレッドシート完全連動） ---
 try:
     df = pd.read_csv(sheet_url)
     st.header("🔥 AI注目銘柄サマリー")
     
-    if not df.empty:
-        # 銘柄ごとのカード表示
+    if not df.empty and len(df.columns) >= 4:
         cols = st.columns(len(df))
         for i, row in df.iterrows():
             with cols[i]:
@@ -43,12 +30,8 @@ try:
                 st.caption(f"コード: {row['ティッカー']}")
                 st.metric("AI分析スコア", f"{row['AI分析スコア']}点")
                 st.info(f"**分析コメント:**\n\n{row['コメント']}")
-        
-        st.divider()
-        st.subheader("📊 銘柄詳細データ一覧")
-        st.dataframe(df, use_container_width=True)
     else:
-        st.warning("スプレッドシートにデータがありません。")
+        st.write("スプレッドシートに有効なデータがありません。")
 
 except Exception as e:
-    st.error("データの読み込み中にエラーが発生しました。")
+    st.error("データの読み込みに失敗しました。スプレッドシートが『リンクを知っている全員：閲覧者』になっているか確認してください。")
