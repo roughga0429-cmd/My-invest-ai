@@ -21,12 +21,15 @@ with st.sidebar:
 
 st.title("🇯🇵 日本株 投資自動分析ボード")
 
-# スプレッドシートのURL
-sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aXS1mQPmR3au-PgbCe3FJ_soX4Os/export?format=csv&gid=0"
+# --- URL設定 ---
+# ① AI分析データのURL (gid=0)
+ai_sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aXS1mQPmR3au-PgbCe3FJ_soX4Os/export?format=csv&gid=0"
+# ② 保有株データのURL (★YOUR_NEW_GIDの部分を、先ほどメモした数字に書き換えてください)
+portfolio_sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aXS1mQPmR3au-PgbCe3FJ_soX4Os/export?format=csv&gid=1796285252"
 
 # --- 1. AI注目銘柄セクション ---
 try:
-    df = pd.read_csv(sheet_url)
+    df = pd.read_csv(ai_sheet_url)
     if not df.empty:
         # 最新3件を取得
         recent_df = df.tail(3).iloc[::-1]
@@ -49,17 +52,37 @@ try:
     else:
         st.warning("スプレッドシートにデータがありません。")
 except Exception as e:
-    st.error(f"データの読み込みに失敗しました。")
+    st.error(f"AI分析データの読み込みに失敗しました。")
 
 st.divider()
 
-# --- 2. 資産管理（簡易表示） ---
+# --- 2. 資産管理（本物と連動！） ---
 st.subheader("💰 資産推移・ポートフォリオ")
-tab1, tab2 = st.tabs(["資産チャート", "保有状況"])
 
-with tab1:
-    chart_data = pd.DataFrame({"評価額": [1000, 1010, 1005, 1020, 1025]}, index=["2/24", "2/25", "2/26", "2/27", "3/2"])
-    st.line_chart(chart_data)
-
-with tab2:
-    st.write("保有銘柄リストをスプレッドシートに追加すると、ここに自動反映されます。")
+try:
+    # 保有株データを読み込む
+    pf_df = pd.read_csv(portfolio_sheet_url)
+    
+    # 評価額と損益の合計を計算
+    total_asset = pf_df['評価額'].sum()
+    total_pl = pf_df['損益'].sum()
+    
+    # プラスマイナスで色を変えるための処理
+    delta_color = "normal" if total_pl >= 0 else "inverse"
+    
+    col_a, col_b = st.columns([1, 2])
+    
+    with col_a:
+        # トータル資産の表示
+        st.metric(
+            label="現在の総評価額", 
+            value=f"¥ {total_asset:,.0f}", 
+            delta=f"¥ {total_pl:,.0f} (トータル損益)",
+            delta_color=delta_color
+        )
+        st.caption("※株価は約20分遅れで自動更新されます")
+        
+    with col_b:
+        # 保有株リストを綺麗な表で表示
+        st.write("📋 **現在のポートフォリオ**")
+        st.dataframe(
