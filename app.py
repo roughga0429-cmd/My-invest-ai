@@ -81,8 +81,8 @@ try:
         st.caption("※株価は約20分遅れで自動更新されます")
     with col_b:
         st.write("📋 **現在のポートフォリオ**")
-        # AI診断の列（I列）を表から隠す
-        display_df = pf_df.drop(columns=["AIポートフォリオ診断"], errors="ignore")
+       # AI診断の列や、謎の空っぽ列（Unnamed）を表から隠す
+        display_df = pf_df.drop(columns=["AIポートフォリオ診断"], errors="ignore").loc[:, ~pf_df.columns.str.contains('^Unnamed')]
         st.dataframe(
             display_df,
             column_config={
