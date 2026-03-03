@@ -89,4 +89,23 @@ try:
                 "購入単価": st.column_config.NumberColumn(format="¥%d"),
                 "現在値": st.column_config.NumberColumn(format="¥%d"),
                 "評価額": st.column_config.NumberColumn(format="¥%d"),
-                "損益":
+                "損益": st.column_config.NumberColumn(format="¥%d"),
+            },
+            hide_index=True,
+            use_container_width=True
+        )
+except Exception as e:
+    st.warning("保有株データの読み込みに失敗しました。")
+
+# --- 3. AIポートフォリオ診断 ---
+st.divider()
+st.subheader("🤖 専属AI ポートフォリオ診断")
+
+try:
+    if "AIポートフォリオ診断" in pf_df.columns:
+        advice = pf_df["AIポートフォリオ診断"].dropna().iloc[0]
+        st.info(f"**【AIからのアドバイス】**\n\n{advice}")
+    else:
+        st.write("まだ診断データがありません。GASを実行してな！")
+except:
+    pass
