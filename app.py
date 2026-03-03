@@ -89,4 +89,4 @@ try:
                 "購入単価": st.column_config.NumberColumn(format="¥%d"),
                 "現在値": st.column_config.NumberColumn(format="¥%d"),
                 "評価額": st.column_config.NumberColumn(format="¥%d"),
-                "損益": st.column_config.NumberColumn
+                "損益":
