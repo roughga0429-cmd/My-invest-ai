@@ -81,7 +81,11 @@ try:
         st.caption("※株価は約20分遅れで自動更新されます")
     with col_b:
         st.write("📋 **現在のポートフォリオ**")
-        st.dataframe(pf_df, hide_index=True, use_container_width=True)
+       # AI診断の列（I列）を表から隠す
+        display_df = pf_df.drop(columns=["AIポートフォリオ診断"], errors="ignore")
+        st.dataframe(
+            display_df,
+            # ... 以降の column_config 等はそのまま！ ...
 except Exception as e:
     st.warning("保有株データの読み込みに失敗しました。")
     # --- 3. AIポートフォリオ診断 ---
