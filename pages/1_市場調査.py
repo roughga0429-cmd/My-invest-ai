@@ -29,7 +29,7 @@ st.divider()
 # --- 2. 🎯 AI PickUp (短期・中期・長期の推奨銘柄) ---
 st.subheader("🎯 AI PickUp (推奨銘柄)")
 
-# 大ボスがくれた推奨銘柄のURLをCSV用に変換して埋め込んどいたで！
+# 推奨銘柄のURL
 pickup_sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aXS1mQPmR3au-PgbCe3FJ_soX4Os/export?format=csv&gid=0"
 
 try:
@@ -83,4 +83,9 @@ def fetch_macro_data(ticker_symbol):
 col1, col2, col3 = st.columns(3)
 with col1:
     c, d, dp = fetch_macro_data("^N225")
-    if c: st.metric("日経平均株価", f
+    if c: st.metric("日経平均株価", f"¥{c:,.0f}", f"{d:+,.0f} ({dp:+.2f}%)")
+with col2:
+    c, d, dp = fetch_macro_data("^GSPC")
+    if c: st.metric("S&P 500", f"${c:,.2f}", f"{d:+,.2f} ({dp:+.2f}%)")
+with col3:
+    c, d, dp = fetch_macro_data
