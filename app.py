@@ -20,40 +20,34 @@ portfolio_sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aX
 
 # --- 1. AI注目銘柄セクション（タブ機能！） ---
 try:
-    # データを読み込み（列名はスプレッドシートの1行目に合わせる）
+    # データを読み込み
     df = pd.read_csv(ai_sheet_url)
     
     if not df.empty and "推奨期間" in df.columns:
         st.subheader("🔥 AI PickUp - 期間別・推奨銘柄リスト")
         
-        # タブの作成
         tab_short, tab_mid, tab_long = st.tabs(["⚡ 短期 (1ヶ月)", "📈 中期 (半年)", "🌍 長期 (年単位)"])
         
         def display_term_cards(term_label, target_tab):
             with target_tab:
-                # 期間でフィルタリング
                 term_df = df[df["推奨期間"].str.contains(term_label, na=False)]
                 if not term_df.empty:
-                    cols = st.columns(3) # 3つずつ並べる
+                    cols = st.columns(3)
                     for i, (idx, row) in enumerate(term_df.iterrows()):
                         with cols[i % 3]:
-                            # スコアはD列（AI分析スコア）から取得
                             try:
                                 score = int(row["AI分析スコア"])
                             except:
                                 score = 0
-                            
                             color = "inverse" if score >= 80 else "normal"
                             with st.container(border=True):
                                 st.markdown(f"### {row['銘柄名']}")
-                                # ティッカーはC列から取得
                                 st.caption(f"Ticker: {row['ティッカー']}")
                                 st.metric("AI Score", f"{score}pt", delta=f"{score-70}%", delta_color=color)
                                 st.write(f"**💡 根拠・コメント:**\n{row['根拠・コメント']}")
                 else:
                     st.write(f"{term_label}の推奨銘柄は現在ありません。")
 
-        # 各タブに表示
         display_term_cards("短期", tab_short)
         display_term_cards("中期", tab_mid)
         display_term_cards("長期", tab_long)
@@ -68,7 +62,6 @@ st.divider()
 st.subheader("💰 資産推移・ポートフォリオ")
 try:
     pf_df = pd.read_csv(portfolio_sheet_url)
-    # 数値計算ができるようにNoneやエラーを0に置換
     pf_df['評価額'] = pd.to_numeric(pf_df['評価額'], errors='coerce').fillna(0)
     pf_df['損益'] = pd.to_numeric(pf_df['損益'], errors='coerce').fillna(0)
     
@@ -81,8 +74,11 @@ try:
         st.caption("※株価は約20分遅れで自動更新されます")
     with col_b:
         st.write("📋 **現在のポートフォリオ**")
-       # AI診断の列や、謎の空っぽ列（Unnamed）を表から隠す
-        display_df = pf_df.drop(columns=["AIポートフォリオ診断"], errors="ignore").loc[:, ~pf_df.columns.str.contains('^Unnamed')]
+        
+        # 💡【修正ポイント】絶対にエラーにならない安全な書き方に変更！
+        valid_cols = [col for col in pf_df.columns if "Unnamed" not in str(col) and col != "AIポートフォリオ診断"]
+        display_df = pf_df[valid_cols]
+        
         st.dataframe(
             display_df,
             column_config={
@@ -95,7 +91,7 @@ try:
             use_container_width=True
         )
 except Exception as e:
-    st.warning("保有株データの読み込みに失敗しました。")
+    st.warning(f"保有株データの読み込みに失敗しました: {e}")
 
 # --- 3. AIポートフォリオ診断 ---
 st.divider()
