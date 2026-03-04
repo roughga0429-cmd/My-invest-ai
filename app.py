@@ -98,4 +98,36 @@ st.subheader("🤖 専属AI ポートフォリオ診断")
 try:
     if "AIポートフォリオ診断" in pf_df.columns:
         advice = pf_df["AIポートフォリオ診断"].dropna().iloc[0]
-        st.info(f"**【AIからのアドバイス
+        st.info(f"**【AIからのアドバイス】**\n\n{advice}")
+    else:
+        st.write("まだ診断データがありません。GASを実行してな！")
+except:
+    pass
+
+# --- 4. 年間配当金カレンダー（シミュレーション） ---
+st.divider()
+st.subheader("🗓️ 年間配当金予測カレンダー")
+try:
+    annual_yield = 0.03
+    estimated_annual_dividend = total_asset * annual_yield
+
+    months = [f"{i}月" for i in range(1, 13)]
+    dividends = [0] * 12
+    dividends[2] = estimated_annual_dividend * 0.4 
+    dividends[5] = estimated_annual_dividend * 0.1 
+    dividends[8] = estimated_annual_dividend * 0.4 
+    dividends[11] = estimated_annual_dividend * 0.1
+
+    chart_data = pd.DataFrame({"月": months, "予想配当金 (円)": dividends})
+    chart_data = chart_data.set_index("月")
+
+    col_c1, col_c2 = st.columns([2, 1])
+    with col_c1:
+        st.bar_chart(chart_data, color="#FFD700") 
+    with col_c2:
+        st.success("💰 **不労所得シミュレーション**")
+        st.metric("年間予想配当金", f"¥ {int(estimated_annual_dividend):,.0f}")
+        st.write(f"💡 ひと月あたり換算:\n**約 ¥ {int(estimated_annual_dividend/12):,.0f}**")
+        st.caption("※現在の総評価額に対し、平均利回り3%・日本株モデルで仮計算したシミュレーションです。")
+except Exception as e:
+    st.write("配当金シミュレーションの計算に失敗しました。")
