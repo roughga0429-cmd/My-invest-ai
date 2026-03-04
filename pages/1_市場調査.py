@@ -13,7 +13,8 @@ st.subheader("🤖 AI 本日の相場ビュー")
 
 # ⚠️ 【重要】ここに大ボスのスプレッドシートの「市場調査」シートのCSV用URLを貼ってな！
 # （前にapp.pyに貼ってたみたいな、export?format=csv&gid=〇〇 ってやつやで！）
-market_sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aXS1mQPmR3au-PgbCe3FJ_soX4Os/edit?gid=1071329934#gid=1071329934"
+# これをそのままコピーして上書きしてな！
+market_sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aXS1mQPmR3au-PgbCe3FJ_soX40s/export?format=csv&gid=1071329934"
 
 try:
     # データを読み込んで、一番新しい行（1行目）のコメントを表示するで
