@@ -8,29 +8,60 @@ st.set_page_config(page_title="市場調査 - My Invest AI Pro", page_icon="📈
 st.title("📈 市場調査・トレンド分析")
 st.write(f"最終更新: {datetime.today().strftime('%Y-%m-%d')}")
 
-# --- 🌟 追加：GASで作った「市場調査」シートからAIコメントを読み込む！ ---
+# --- 1. 市場調査のAIコメント ---
 st.subheader("🤖 AI 本日の相場ビュー")
-
-# ⚠️ 【重要】ここに大ボスのスプレッドシートの「市場調査」シートのCSV用URLを貼ってな！
-# （前にapp.pyに貼ってたみたいな、export?format=csv&gid=〇〇 ってやつやで！）
-# これをそのままコピーして上書きしてな！
 market_sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aXS1mQPmR3au-PgbCe3FJ_soX40s/export?format=csv&gid=1071329934"
 
 try:
-    # データを読み込んで、一番新しい行（1行目）のコメントを表示するで
     df_market = pd.read_csv(market_sheet_url)
     if not df_market.empty:
         latest_date = df_market.iloc[0, 0]
         latest_comment = df_market.iloc[0, 1]
         st.info(f"**【{latest_date} のAI分析】**\n\n{latest_comment}")
     else:
-        st.warning("まだAIの市場分析データがないみたいやわ。GASを実行してみてな！")
+        st.warning("まだAIの市場分析データがないみたいやわ。")
 except Exception as e:
     st.error("AIコメントの読み込みでエラーが出たわ。URLが合ってるか確認してな！")
 
 st.divider()
 
-# --- 主要インデックス＆為替のリアルタイム表示（yfinance） ---
+# --- 2. 🎯 AI PickUp (短期・中期・長期の推奨銘柄) ---
+st.subheader("🎯 AI PickUp (推奨銘柄)")
+
+# ⚠️ 【超重要】ここに「推奨銘柄」シートのURLを新しく貼ってな！
+# （市場調査の時と同じように export?format=csv&gid=〇〇 の形にするんやで！）
+pickup_sheet_url = "ここに推奨銘柄シートのURLを貼り付ける"
+
+try:
+    df_pickup = pd.read_csv(pickup_sheet_url)
+    
+    if not df_pickup.empty:
+        # Streamlitのタブ機能で短期・中期・長期を分ける！
+        tabs = st.tabs(["短期目線", "中期目線", "長期目線"])
+        periods = ["短期", "中期", "長期"]
+        
+        for i, period in enumerate(periods):
+            with tabs[i]:
+                # 該当する期間のデータだけ抜き出す
+                period_data = df_pickup[df_pickup['推奨期間'] == period]
+                
+                if not period_data.empty:
+                    # 銘柄の数だけ横に並べるカッコええカードレイアウト
+                    cols = st.columns(len(period_data))
+                    for idx, row in enumerate(period_data.iterrows()):
+                        row_data = row[1]
+                        with cols[idx]:
+                            st.write(f"### {row_data['銘柄名']} ({row_data['ティッカー']})")
+                            st.metric("AI分析スコア", f"{row_data['AI分析スコア']} pt")
+                            st.write(f"**💡 根拠:** {row_data['根拠・コメント']}")
+                else:
+                    st.write("この期間の推奨銘柄はまだないみたいやわ。")
+except Exception as e:
+    st.error("推奨銘柄の読み込みエラーや！URLが間違ってないか、GASでシートが作られてるか確認してな。")
+
+st.divider()
+
+# --- 3. 主要インデックス＆為替のリアルタイム表示 ---
 st.subheader("🌍 主要インデックス＆為替レーダー")
 
 @st.cache_data(ttl=3600)
@@ -61,7 +92,7 @@ with col3:
 
 st.divider()
 
-# --- 個別銘柄の深掘り調査エリア ---
+# --- 4. 個別銘柄の深掘り調査エリア ---
 st.subheader("🔍 個別銘柄 深掘り調査")
 search_ticker = st.text_input("証券コードを入力（例: 7011）", max_chars=4)
 
