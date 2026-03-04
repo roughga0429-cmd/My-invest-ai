@@ -20,12 +20,9 @@ portfolio_sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aX
 
 # --- 1. AI注目銘柄セクション（タブ機能！） ---
 try:
-    # データを読み込み
     df = pd.read_csv(ai_sheet_url)
-    
     if not df.empty and "推奨期間" in df.columns:
         st.subheader("🔥 AI PickUp - 期間別・推奨銘柄リスト")
-        
         tab_short, tab_mid, tab_long = st.tabs(["⚡ 短期 (1ヶ月)", "📈 中期 (半年)", "🌍 長期 (年単位)"])
         
         def display_term_cards(term_label, target_tab):
@@ -75,7 +72,7 @@ try:
     with col_b:
         st.write("📋 **現在のポートフォリオ**")
         
-        # 💡【修正ポイント】絶対にエラーにならない安全な書き方に変更！
+        # 不要な列を省いて表示用のデータを作る
         valid_cols = [col for col in pf_df.columns if "Unnamed" not in str(col) and col != "AIポートフォリオ診断"]
         display_df = pf_df[valid_cols]
         
@@ -86,6 +83,8 @@ try:
                 "現在値": st.column_config.NumberColumn(format="¥%d"),
                 "評価額": st.column_config.NumberColumn(format="¥%d"),
                 "損益": st.column_config.NumberColumn(format="¥%d"),
+                # 👇 新しいお天気判定の列を広めに表示する設定を追加したで！
+                "最新ニュースお天気判定": st.column_config.TextColumn("AIお天気判定 🌤️", width="large"),
             },
             hide_index=True,
             use_container_width=True
@@ -96,48 +95,7 @@ except Exception as e:
 # --- 3. AIポートフォリオ診断 ---
 st.divider()
 st.subheader("🤖 専属AI ポートフォリオ診断")
-
 try:
     if "AIポートフォリオ診断" in pf_df.columns:
         advice = pf_df["AIポートフォリオ診断"].dropna().iloc[0]
-        st.info(f"**【AIからのアドバイス】**\n\n{advice}")
-    else:
-        st.write("まだ診断データがありません。GASを実行してな！")
-except:
-    pass
-# --- 4. 年間配当金カレンダー（シミュレーション） ---
-st.divider()
-st.subheader("🗓️ 年間配当金予測カレンダー")
-
-try:
-    # 日本株の平均的な利回り（約3%）と、決算期（3月・9月偏重）をベースにしたシミュレーション
-    annual_yield = 0.03
-    estimated_annual_dividend = total_asset * annual_yield
-
-    # 12ヶ月分のデータを作成
-    months = [f"{i}月" for i in range(1, 13)]
-    dividends = [0] * 12
-    # 日本株の典型的な配当月（3月・9月に厚め、6月・12月に少々）に振り分け
-    dividends[2] = estimated_annual_dividend * 0.4  # 3月に40%
-    dividends[5] = estimated_annual_dividend * 0.1  # 6月に10%
-    dividends[8] = estimated_annual_dividend * 0.4  # 9月に40%
-    dividends[11] = estimated_annual_dividend * 0.1 # 12月に10%
-
-    # グラフ用のデータフレーム作成
-    chart_data = pd.DataFrame({"月": months, "予想配当金 (円)": dividends})
-    chart_data = chart_data.set_index("月")
-
-    col_c1, col_c2 = st.columns([2, 1])
-    
-    with col_c1:
-        # Streamlitの標準機能で綺麗な棒グラフを描画！（色は配当金っぽくゴールド）
-        st.bar_chart(chart_data, color="#FFD700") 
-        
-    with col_c2:
-        st.success("💰 **不労所得シミュレーション**")
-        st.metric("年間予想配当金", f"¥ {int(estimated_annual_dividend):,.0f}")
-        st.write(f"💡 ひと月あたり換算:\n**約 ¥ {int(estimated_annual_dividend/12):,.0f}**")
-        st.caption("※現在の総評価額に対し、平均利回り3%・日本株モデルで仮計算したシミュレーションです。")
-
-except Exception as e:
-    st.write("配当金シミュレーションの計算に失敗しました。")
+        st.info(f"**【AIからのアドバイス
