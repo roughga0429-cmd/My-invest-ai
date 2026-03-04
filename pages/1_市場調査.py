@@ -10,6 +10,7 @@ st.write(f"最終更新: {datetime.today().strftime('%Y-%m-%d')}")
 
 # --- 1. 市場調査のAIコメント ---
 st.subheader("🤖 AI 本日の相場ビュー")
+# 変換済みの市場調査シートURL
 market_sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aXS1mQPmR3au-PgbCe3FJ_soX40s/export?format=csv&gid=1071329934"
 
 try:
@@ -19,18 +20,17 @@ try:
         latest_comment = df_market.iloc[0, 1]
         st.info(f"**【{latest_date} のAI分析】**\n\n{latest_comment}")
     else:
-        st.warning("まだAIの市場分析データがないみたいやわ。")
+        st.warning("まだAIの市場分析データがないみたいやわ。GASを実行してみてな！")
 except Exception as e:
-    st.error("AIコメントの読み込みでエラーが出たわ。URLが合ってるか確認してな！")
+    st.error("AIコメントの読み込みでエラーが出たわ。")
 
 st.divider()
 
 # --- 2. 🎯 AI PickUp (短期・中期・長期の推奨銘柄) ---
 st.subheader("🎯 AI PickUp (推奨銘柄)")
 
-# ⚠️ 【超重要】ここに「推奨銘柄」シートのURLを新しく貼ってな！
-# （市場調査の時と同じように export?format=csv&gid=〇〇 の形にするんやで！）
-pickup_sheet_url = "ここに推奨銘柄シートのURLを貼り付ける"
+# 大ボスがくれた推奨銘柄のURLをCSV用に変換して埋め込んどいたで！
+pickup_sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aXS1mQPmR3au-PgbCe3FJ_soX40s/export?format=csv&gid=0"
 
 try:
     df_pickup = pd.read_csv(pickup_sheet_url)
@@ -48,16 +48,17 @@ try:
                 if not period_data.empty:
                     # 銘柄の数だけ横に並べるカッコええカードレイアウト
                     cols = st.columns(len(period_data))
-                    for idx, row in enumerate(period_data.iterrows()):
-                        row_data = row[1]
+                    for idx, (_, row_data) in enumerate(period_data.iterrows()):
                         with cols[idx]:
                             st.write(f"### {row_data['銘柄名']} ({row_data['ティッカー']})")
                             st.metric("AI分析スコア", f"{row_data['AI分析スコア']} pt")
                             st.write(f"**💡 根拠:** {row_data['根拠・コメント']}")
                 else:
                     st.write("この期間の推奨銘柄はまだないみたいやわ。")
+    else:
+        st.warning("推奨銘柄のデータが空っぽみたいやわ。")
 except Exception as e:
-    st.error("推奨銘柄の読み込みエラーや！URLが間違ってないか、GASでシートが作られてるか確認してな。")
+    st.error("推奨銘柄の読み込みエラーや！GASでデータが作られてるか確認してな。")
 
 st.divider()
 
@@ -82,36 +83,4 @@ def fetch_macro_data(ticker_symbol):
 col1, col2, col3 = st.columns(3)
 with col1:
     c, d, dp = fetch_macro_data("^N225")
-    if c: st.metric("日経平均株価", f"¥{c:,.0f}", f"{d:+,.0f} ({dp:+.2f}%)")
-with col2:
-    c, d, dp = fetch_macro_data("^GSPC")
-    if c: st.metric("S&P 500", f"${c:,.2f}", f"{d:+,.2f} ({dp:+.2f}%)")
-with col3:
-    c, d, dp = fetch_macro_data("JPY=X")
-    if c: st.metric("ドル円 (USD/JPY)", f"¥{c:,.2f}", f"{d:+,.2f} ({dp:+.2f}%)", delta_color="inverse")
-
-st.divider()
-
-# --- 4. 個別銘柄の深掘り調査エリア ---
-st.subheader("🔍 個別銘柄 深掘り調査")
-search_ticker = st.text_input("証券コードを入力（例: 7011）", max_chars=4)
-
-if st.button("📈 トレンドを調査する"):
-    if search_ticker:
-        with st.spinner('データ集めてるで...'):
-            try:
-                tkr = yf.Ticker(f"{search_ticker}.T")
-                hist_1mo = tkr.history(period="1mo")
-                if not hist_1mo.empty:
-                    info = tkr.info
-                    company_name = info.get('longName', '名称不明')
-                    current_price = hist_1mo['Close'].iloc[-1]
-                    st.success(f"**{company_name} ({search_ticker})** の直近1ヶ月のデータや！")
-                    st.metric("現在値", f"¥{current_price:,.0f}")
-                    st.line_chart(hist_1mo['Close'])
-                else:
-                    st.warning("データが見つからんかったわ。")
-            except:
-                st.error("エラーが起きたわ。もう1回試してみてな！")
-    else:
-        st.warning("コードを入力してや！")
+    if c: st.metric("日経平均株価", f
