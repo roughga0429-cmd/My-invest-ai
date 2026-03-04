@@ -11,7 +11,7 @@ st.write(f"最終更新: {datetime.today().strftime('%Y-%m-%d')}")
 # --- 1. 市場調査のAIコメント ---
 st.subheader("🤖 AI 本日の相場ビュー")
 # 変換済みの市場調査シートURL
-market_sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aXS1mQPmR3au-PgbCe3FJ_soX40s/export?format=csv&gid=1071329934"
+market_sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aXS1mQPmR3au-PgbCe3FJ_soX4Os/export?format=csv&gid=1071329934"
 
 try:
     df_market = pd.read_csv(market_sheet_url)
@@ -30,7 +30,7 @@ st.divider()
 st.subheader("🎯 AI PickUp (推奨銘柄)")
 
 # 大ボスがくれた推奨銘柄のURLをCSV用に変換して埋め込んどいたで！
-pickup_sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aXS1mQPmR3au-PgbCe3FJ_soX40s/export?format=csv&gid=0"
+pickup_sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aXS1mQPmR3au-PgbCe3FJ_soX4Os/export?format=csv&gid=0"
 
 try:
     df_pickup = pd.read_csv(pickup_sheet_url)
