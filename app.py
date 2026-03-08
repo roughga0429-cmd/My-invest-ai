@@ -1,88 +1,23 @@
 import streamlit as st
 import pandas as pd
 import datetime
-import yfinance as yf # 👈 ★株価取得のための新兵器や！
 
-st.set_page_config(page_title="My Invest AI Pro", layout="wide", initial_sidebar_state="expanded")
+st.set_page_config(page_title="資産管理 - My Invest AI Pro", layout="wide", initial_sidebar_state="expanded")
 
 with st.sidebar:
     st.title("⚙️ System Settings")
     st.write(f"📅 最終更新: {datetime.date.today()}")
     st.divider()
-    st.info("💡 **運用方針**: 地政学リスクを考慮したインフラ・ディフェンシブ銘柄の選定")
+    st.info("💡 **運用方針**: 地政学リスクを考慮したインフラ・ディフェンシブ銘柄の選定\n🎯 **目標**: 5年で1億円")
 
-st.title("🇯🇵 日本株 投資自動分析ボード")
+st.title("💰 資産管理・ポートフォリオ")
 
 # --- URL設定 ---
-ai_sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aXS1mQPmR3au-PgbCe3FJ_soX4Os/export?format=csv&gid=0"
 portfolio_sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aXS1mQPmR3au-PgbCe3FJ_soX4Os/export?format=csv&gid=1796285252"
+diag_sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aXS1mQPmR3au-PgbCe3FJ_soX4Os/export?format=csv&gid=1357398603"
 
-# 💡 株価を爆速で取得するためのキャッシュ機能（1時間保存）
-@st.cache_data(ttl=3600)
-def fetch_stock_data(ticker_code):
-    try:
-        # 日本株は「証券コード.T」にする必要があるねん
-        tkr = yf.Ticker(f"{ticker_code}.T")
-        hist = tkr.history(period="5d")
-        if len(hist) >= 2:
-            current = hist['Close'].iloc[-1]
-            prev = hist['Close'].iloc[-2]
-            diff = current - prev
-            diff_pct = (diff / prev) * 100
-            return current, diff, diff_pct
-        return None, None, None
-    except:
-        return None, None, None
-
-# --- 1. AI注目銘柄セクション（タブ廃止・フルオープン版） ---
-try:
-    df = pd.read_csv(ai_sheet_url)
-    if not df.empty and "推奨期間" in df.columns:
-        st.subheader("🔥 AI PickUp - 推奨銘柄リスト（全期間展開）")
-        
-        def display_term_section(term_label):
-            term_df = df[df["推奨期間"].str.contains(term_label, na=False)]
-            if not term_df.empty:
-                st.markdown(f"#### 🎯 {term_label}目線")
-                cols = st.columns(3)
-                for i, (idx, row) in enumerate(term_df.iterrows()):
-                    with cols[i % 3]:
-                        try:
-                            score = int(row["AI分析スコア"])
-                        except:
-                            score = 0
-                            
-                        color = "inverse" if score >= 80 else "normal"
-                        curr, diff, diff_pct = fetch_stock_data(row['ティッカー'])
-
-                        with st.container(border=True):
-                            st.markdown(f"### {row['銘柄名']}")
-                            st.caption(f"Ticker: {row['ティッカー']}")
-                            
-                            # スコアと株価を横並びに！
-                            col1, col2 = st.columns(2)
-                            col1.metric("AI Score", f"{score}pt", delta=f"{score-70}%", delta_color=color)
-                            
-                            if curr is not None:
-                                col2.metric("現在値", f"¥{curr:,.0f}", f"{diff:+.0f}円 ({diff_pct:+.2f}%)")
-                            else:
-                                col2.metric("現在値", "取得エラー", "")
-                                
-                            st.write(f"**💡 根拠・コメント:**\n{row['根拠・コメント']}")
-                st.divider()
-
-        # タブを使わず、上から順番にドカーンと表示するで
-        display_term_section("短期")
-        display_term_section("中期")
-        display_term_section("長期")
-    else:
-        st.warning("スプレッドシートの形式を確認してください")
-except Exception as e:
-    st.error(f"AIデータの読み込みに失敗しました: {e}")
-
-# --- 以下はこれまでの機能そのままや！ ---
-# --- 2. 資産管理 ---
-st.subheader("💰 資産推移・ポートフォリオ")
+# --- 1. 資産状況・ポートフォリオ ---
+st.subheader("📊 現在の資産状況")
 try:
     pf_df = pd.read_csv(portfolio_sheet_url)
     pf_df['評価額'] = pd.to_numeric(pf_df['評価額'], errors='coerce').fillna(0)
@@ -94,7 +29,7 @@ try:
     with col_a:
         st.metric(label="現在の総評価額", value=f"¥ {total_asset:,.0f}", delta=f"¥ {total_pl:,.0f} (トータル損益)")
     with col_b:
-        st.write("📋 **現在のポートフォリオ**")
+        st.write("📋 **保有銘柄一覧**")
         valid_cols = [col for col in pf_df.columns if "Unnamed" not in str(col) and col != "AIポートフォリオ診断"]
         display_df = pf_df[valid_cols]
         st.dataframe(
@@ -112,26 +47,23 @@ try:
 except Exception as e:
     st.warning(f"保有株データの読み込みに失敗しました: {e}")
 
-# --- 🤖 専属AIポートフォリオ診断の表示 ---
+st.divider()
+
+# --- 2. 🤖 専属AIポートフォリオ診断 ---
 st.subheader("🤖 専属AIポートフォリオ診断")
-
-# ⚠️ 先ほど作った「ポートフォリオ診断」シートのURLをここに貼る！
-diag_sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aXS1mQPmR3au-PgbCe3FJ_soX4Os/export?format=csv&gid=1357398603"
-
 try:
-    # 今回はタイトル行がないから header=None にして読み込むのがポイントや！
     df_diag = pd.read_csv(diag_sheet_url, header=None)
     if not df_diag.empty:
         ai_advice = df_diag.iloc[0, 0]
-        # st.infoを使って、青くてカッコいい枠の中に表示させるで！
         st.info(f"💡 **AI専属コンサルタントより**\n\n{ai_advice}")
     else:
         st.write("まだAIの診断結果がないみたいやわ。")
 except Exception as e:
     st.error("AI診断データの読み込みエラーや！URLのgidが合ってるか確認してな。")
 
-st.divider() # 区切り線
-# --- 4. 年間配当金予測カレンダー ---
+st.divider()
+
+# --- 3. 年間配当金予測カレンダー ---
 st.subheader("🗓️ 年間配当金予測カレンダー")
 try:
     annual_yield = 0.03
