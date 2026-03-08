@@ -112,15 +112,25 @@ try:
 except Exception as e:
     st.warning(f"保有株データの読み込みに失敗しました: {e}")
 
-# --- 3. AIポートフォリオ診断 ---
-st.subheader("🤖 専属AI ポートフォリオ診断")
-try:
-    if "AIポートフォリオ診断" in pf_df.columns:
-        advice = pf_df["AIポートフォリオ診断"].dropna().iloc[0]
-        st.info(f"**【AIからのアドバイス】**\n\n{advice}")
-except:
-    pass
+# --- 🤖 専属AIポートフォリオ診断の表示 ---
+st.subheader("🤖 専属AIポートフォリオ診断")
 
+# ⚠️ 先ほど作った「ポートフォリオ診断」シートのURLをここに貼る！
+diag_sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aXS1mQPmR3au-PgbCe3FJ_soX4Os/export?format=csv&gid=1357398603"
+
+try:
+    # 今回はタイトル行がないから header=None にして読み込むのがポイントや！
+    df_diag = pd.read_csv(diag_sheet_url, header=None)
+    if not df_diag.empty:
+        ai_advice = df_diag.iloc[0, 0]
+        # st.infoを使って、青くてカッコいい枠の中に表示させるで！
+        st.info(f"💡 **AI専属コンサルタントより**\n\n{ai_advice}")
+    else:
+        st.write("まだAIの診断結果がないみたいやわ。")
+except Exception as e:
+    st.error("AI診断データの読み込みエラーや！URLのgidが合ってるか確認してな。")
+
+st.divider() # 区切り線
 # --- 4. 年間配当金予測カレンダー ---
 st.subheader("🗓️ 年間配当金予測カレンダー")
 try:
