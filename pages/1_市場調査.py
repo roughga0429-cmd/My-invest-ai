@@ -36,17 +36,13 @@ try:
     df_pickup = pd.read_csv(pickup_sheet_url)
     
     if not df_pickup.empty:
-        # Streamlitのタブ機能で短期・中期・長期を分ける！
         tabs = st.tabs(["短期目線", "中期目線", "長期目線"])
         periods = ["短期", "中期", "長期"]
         
         for i, period in enumerate(periods):
             with tabs[i]:
-                # 該当する期間のデータだけ抜き出す
                 period_data = df_pickup[df_pickup['推奨期間'] == period]
-                
                 if not period_data.empty:
-                    # 銘柄の数だけ横に並べるカッコええカードレイアウト
                     cols = st.columns(len(period_data))
                     for idx, (_, row_data) in enumerate(period_data.iterrows()):
                         with cols[idx]:
@@ -71,21 +67,63 @@ def fetch_macro_data(ticker_symbol):
         tkr = yf.Ticker(ticker_symbol)
         hist = tkr.history(period="5d")
         if len(hist) >= 2:
-            current = hist['Close'].iloc[-1]
-            prev = hist['Close'].iloc[-2]
+            # 確実に計算できるようにする安全設計！
+            current = float(hist['Close'].iloc[-1])
+            prev = float(hist['Close'].iloc[-2])
             diff = current - prev
             diff_pct = (diff / prev) * 100
             return current, diff, diff_pct
         return None, None, None
-    except:
+    except Exception:
+        # エラーが起きてもアプリを止めずにNoneを返す！
         return None, None, None
 
 col1, col2, col3 = st.columns(3)
+
+# 取得に失敗しても画面がクラッシュしないようにガード！
 with col1:
     c, d, dp = fetch_macro_data("^N225")
-    if c: st.metric("日経平均株価", f"¥{c:,.0f}", f"{d:+,.0f} ({dp:+.2f}%)")
+    if c is not None: 
+        st.metric("日経平均株価", f"¥{c:,.0f}", f"{d:+,.0f} ({dp:+.2f}%)")
+    else: 
+        st.metric("日経平均株価", "データ取得エラー")
+        
 with col2:
     c, d, dp = fetch_macro_data("^GSPC")
-    if c: st.metric("S&P 500", f"${c:,.2f}", f"{d:+,.2f} ({dp:+.2f}%)")
+    if c is not None: 
+        st.metric("S&P 500", f"${c:,.2f}", f"{d:+,.2f} ({dp:+.2f}%)")
+    else: 
+        st.metric("S&P 500", "データ取得エラー")
+        
 with col3:
-    c, d, dp = fetch_macro_data
+    c, d, dp = fetch_macro_data("JPY=X")
+    if c is not None: 
+        st.metric("ドル円 (USD/JPY)", f"¥{c:,.2f}", f"{d:+,.2f} ({dp:+.2f}%)", delta_color="inverse")
+    else: 
+        st.metric("ドル円 (USD/JPY)", "データ取得エラー")
+
+st.divider()
+
+# --- 4. 個別銘柄の深掘り調査エリア ---
+st.subheader("🔍 個別銘柄 深掘り調査")
+search_ticker = st.text_input("証券コードを入力（例: 7011）", max_chars=4)
+
+if st.button("📈 トレンドを調査する"):
+    if search_ticker:
+        with st.spinner('データ集めてるで...'):
+            try:
+                tkr = yf.Ticker(f"{search_ticker}.T")
+                hist_1mo = tkr.history(period="1mo")
+                if not hist_1mo.empty:
+                    info = tkr.info
+                    company_name = info.get('longName', '名称不明')
+                    current_price = float(hist_1mo['Close'].iloc[-1])
+                    st.success(f"**{company_name} ({search_ticker})** の直近1ヶ月のデータや！")
+                    st.metric("現在値", f"¥{current_price:,.0f}")
+                    st.line_chart(hist_1mo['Close'])
+                else:
+                    st.warning("データが見つからんかったわ。")
+            except Exception:
+                st.error("エラーが起きたわ。もう1回試してみてな！")
+    else:
+        st.warning("コードを入力してや！")
