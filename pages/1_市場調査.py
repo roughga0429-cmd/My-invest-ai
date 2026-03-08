@@ -8,6 +8,23 @@ st.set_page_config(page_title="市場調査 - My Invest AI Pro", page_icon="📈
 st.title("📈 市場調査・トレンド分析")
 st.write(f"最終更新: {datetime.today().strftime('%Y-%m-%d')}")
 
+# 💡 個別株の株価を爆速で取得するための新兵器（TOP3で使うで！）
+@st.cache_data(ttl=3600)
+def fetch_stock_data(ticker_code):
+    try:
+        # 日本株は「証券コード.T」にする必要があるねん
+        tkr = yf.Ticker(f"{ticker_code}.T")
+        hist = tkr.history(period="5d")
+        if len(hist) >= 2:
+            current = float(hist['Close'].iloc[-1])
+            prev = float(hist['Close'].iloc[-2])
+            diff = current - prev
+            diff_pct = (diff / prev) * 100
+            return current, diff, diff_pct
+        return None, None, None
+    except:
+        return None, None, None
+
 # --- 1. 市場調査のAIコメント ---
 st.subheader("🤖 AI 本日の相場ビュー")
 # 変換済みの市場調査シートURL
@@ -45,7 +62,7 @@ try:
                 period_data = df_pickup[df_pickup['推奨期間'] == period].copy()
                 
                 if not period_data.empty:
-                    # 💡 スコアを数字にして、高い順に並べ替える！最大10件まで絞るで！
+                    # スコアを数字にして、高い順に並べ替える！最大10件！
                     period_data['AI分析スコア'] = pd.to_numeric(period_data['AI分析スコア'], errors='coerce').fillna(0)
                     period_data = period_data.sort_values(by='AI分析スコア', ascending=False).head(10)
                     
@@ -53,29 +70,46 @@ try:
                     top3_data = period_data.iloc[:3]
                     other_data = period_data.iloc[3:]
 
-                    # 🏆 --- TOP 3 のデカデカ表示エリア ---
+                    # 🏆 --- TOP 3 のデカデカ表示エリア（元のカッコいいデザイン復活！） ---
                     st.markdown("#### 🏆 TOP 3 ピックアップ")
-                    # もし3件未満でも綺麗に並ぶように列の数を調整
                     cols = st.columns(len(top3_data) if len(top3_data) > 0 else 1)
                     medals = ["🥇 1位", "🥈 2位", "🥉 3位"]
 
-                    for idx, (_, row_data) in enumerate(top3_data.iterrows()):
+                    for idx, (_, row) in enumerate(top3_data.iterrows()):
                         with cols[idx]:
-                            # 枠線をつけてカードっぽくする
+                            try:
+                                score = int(row["AI分析スコア"])
+                            except:
+                                score = 0
+                                
+                            color = "inverse" if score >= 80 else "normal"
+                            curr, diff, diff_pct = fetch_stock_data(row['ティッカー'])
+
+                            # 枠線をつけてカードっぽく！
                             with st.container(border=True):
-                                st.write(f"### {medals[idx]} {row_data['銘柄名']}")
-                                st.caption(f"コード: {row_data['ティッカー']}")
-                                st.metric("AI分析スコア", f"{row_data['AI分析スコア']} pt")
-                                st.write(f"**💡 根拠:** {row_data['根拠・コメント']}")
+                                # 名前とティッカー
+                                st.markdown(f"### {medals[idx]} {row['銘柄名']}")
+                                st.caption(f"Ticker: {row['ティッカー']}")
+                                
+                                # スコアと現在値を横並びにする元のデザイン！
+                                col1, col2 = st.columns(2)
+                                col1.metric("AI Score", f"{score}pt", delta=f"{score-70}%", delta_color=color)
+                                
+                                if curr is not None:
+                                    col2.metric("現在値", f"¥{curr:,.0f}", f"{diff:+.0f}円 ({diff_pct:+.2f}%)")
+                                else:
+                                    col2.metric("現在値", "取得エラー", "")
+                                    
+                                st.write(f"**💡 根拠・コメント:**\n{row['根拠・コメント']}")
 
                     # 🌟 --- 4位〜10位の小さめ表示エリア ---
                     if not other_data.empty:
                         st.markdown("#### 🌟 注目銘柄 (4位〜10位)")
-                        for idx, (_, row_data) in enumerate(other_data.iterrows()):
+                        for idx, (_, row) in enumerate(other_data.iterrows()):
                             rank = idx + 4
-                            # Expander（折りたたみ）にして、クリックすると理由が見れるようにする！
-                            with st.expander(f"🏅 {rank}位: {row_data['銘柄名']} ({row_data['ティッカー']}) - スコア: {row_data['AI分析スコア']}pt"):
-                                st.write(f"**💡 根拠:** {row_data['根拠・コメント']}")
+                            # クリックしたら開くアコーディオン（Expander）
+                            with st.expander(f"🏅 {rank}位: {row['銘柄名']} ({row['ティッカー']}) - AIスコア: {row['AI分析スコア']}pt"):
+                                st.write(f"**💡 根拠:** {row['根拠・コメント']}")
 
                 else:
                     st.write("この期間の推奨銘柄はまだないみたいやわ。")
