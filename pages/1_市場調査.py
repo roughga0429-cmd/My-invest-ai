@@ -26,8 +26,8 @@ except Exception as e:
 
 st.divider()
 
-# --- 2. 🎯 AI PickUp (短期・中期・長期の推奨銘柄) ---
-st.subheader("🎯 AI PickUp (推奨銘柄)")
+# --- 2. 🎯 AI PickUp (短期・中期・長期の推奨銘柄 TOP10) ---
+st.subheader("🎯 AI PickUp (推奨銘柄 TOP10)")
 
 # 推奨銘柄のURL
 pickup_sheet_url = "https://docs.google.com/spreadsheets/d/1FPP88GmznB99b42aXS1mQPmR3au-PgbCe3FJ_soX4Os/export?format=csv&gid=0"
@@ -41,14 +41,42 @@ try:
         
         for i, period in enumerate(periods):
             with tabs[i]:
-                period_data = df_pickup[df_pickup['推奨期間'] == period]
+                # 該当する期間のデータを抜き出す
+                period_data = df_pickup[df_pickup['推奨期間'] == period].copy()
+                
                 if not period_data.empty:
-                    cols = st.columns(len(period_data))
-                    for idx, (_, row_data) in enumerate(period_data.iterrows()):
+                    # 💡 スコアを数字にして、高い順に並べ替える！最大10件まで絞るで！
+                    period_data['AI分析スコア'] = pd.to_numeric(period_data['AI分析スコア'], errors='coerce').fillna(0)
+                    period_data = period_data.sort_values(by='AI分析スコア', ascending=False).head(10)
+                    
+                    # TOP 3 と それ以外(4位〜10位) に分ける
+                    top3_data = period_data.iloc[:3]
+                    other_data = period_data.iloc[3:]
+
+                    # 🏆 --- TOP 3 のデカデカ表示エリア ---
+                    st.markdown("#### 🏆 TOP 3 ピックアップ")
+                    # もし3件未満でも綺麗に並ぶように列の数を調整
+                    cols = st.columns(len(top3_data) if len(top3_data) > 0 else 1)
+                    medals = ["🥇 1位", "🥈 2位", "🥉 3位"]
+
+                    for idx, (_, row_data) in enumerate(top3_data.iterrows()):
                         with cols[idx]:
-                            st.write(f"### {row_data['銘柄名']} ({row_data['ティッカー']})")
-                            st.metric("AI分析スコア", f"{row_data['AI分析スコア']} pt")
-                            st.write(f"**💡 根拠:** {row_data['根拠・コメント']}")
+                            # 枠線をつけてカードっぽくする
+                            with st.container(border=True):
+                                st.write(f"### {medals[idx]} {row_data['銘柄名']}")
+                                st.caption(f"コード: {row_data['ティッカー']}")
+                                st.metric("AI分析スコア", f"{row_data['AI分析スコア']} pt")
+                                st.write(f"**💡 根拠:** {row_data['根拠・コメント']}")
+
+                    # 🌟 --- 4位〜10位の小さめ表示エリア ---
+                    if not other_data.empty:
+                        st.markdown("#### 🌟 注目銘柄 (4位〜10位)")
+                        for idx, (_, row_data) in enumerate(other_data.iterrows()):
+                            rank = idx + 4
+                            # Expander（折りたたみ）にして、クリックすると理由が見れるようにする！
+                            with st.expander(f"🏅 {rank}位: {row_data['銘柄名']} ({row_data['ティッカー']}) - スコア: {row_data['AI分析スコア']}pt"):
+                                st.write(f"**💡 根拠:** {row_data['根拠・コメント']}")
+
                 else:
                     st.write("この期間の推奨銘柄はまだないみたいやわ。")
     else:
@@ -67,7 +95,6 @@ def fetch_macro_data(ticker_symbol):
         tkr = yf.Ticker(ticker_symbol)
         hist = tkr.history(period="5d")
         if len(hist) >= 2:
-            # 確実に計算できるようにする安全設計！
             current = float(hist['Close'].iloc[-1])
             prev = float(hist['Close'].iloc[-2])
             diff = current - prev
@@ -75,12 +102,10 @@ def fetch_macro_data(ticker_symbol):
             return current, diff, diff_pct
         return None, None, None
     except Exception:
-        # エラーが起きてもアプリを止めずにNoneを返す！
         return None, None, None
 
 col1, col2, col3 = st.columns(3)
 
-# 取得に失敗しても画面がクラッシュしないようにガード！
 with col1:
     c, d, dp = fetch_macro_data("^N225")
     if c is not None: 
